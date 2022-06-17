@@ -1,18 +1,16 @@
 package engine;
 
 import java.awt.image.BufferedImage;
-import java.io.InputStream;
-
-import javax.imageio.ImageIO;
-
 import java.awt.Color;
 import java.awt.Graphics;
+import java.io.InputStream;
+import javax.imageio.ImageIO;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
 /** Tem o objetivo de atualizar e renderizar os Layers */
-public abstract class Level {
+public abstract class Level implements IGameloop{
     // atributos
     public String imagensDir;
     public TileLayer[] listaTileLayers; // lista com todos os layers do cenário
@@ -57,7 +55,7 @@ public abstract class Level {
     public abstract void atribuiTilesetsLayers();
 
     // métodos gameloop ***********************************************
-    public void handlerEvents() {
+    public final void handlerEvents() {
         /** Modificar a velocidade do person de acordo com a movimentação dos direcionais */
         person.velX = 0;
         person.velY = 0;
@@ -80,13 +78,17 @@ public abstract class Level {
         } else if (keyState.k_baixo) {
             person.velY = person.velBase;
         }
+
+        handlerEventsLevel(); // especificidade de quem herda
     }
 
-    public void update() {
+    public final void update() {
         
         // atualiza a camera com base na velocidade do personagem ******************************
         if(camera.cameraEsquerdaLevel()){ // camera na esquerda do level
             // movimentação horizontal ---------------------------------
+            System.out.println("Centro X: "+person.getCentroX()+person.velX);
+            System.out.println("Limite H: "+person.limiteHorizontal);
             if(person.getCentroX()+person.velX<=person.limiteHorizontal){ // personagem dentro da primeira metade da tela
                 person.posX+=person.velX;
             }else{
@@ -156,20 +158,28 @@ public abstract class Level {
         for (int i = 0; i < listaTileLayers.length; i++) {
             listaTileLayers[i].update();
         }
-
+        
         person.update();
+
+        updateLevel(); // especificidade de quem herda
     }
 
-    public void render(Graphics g) {
+    public final void render(Graphics g) {
         // renderiza os npcs
         g.setColor(Color.RED);
-
         listaTileLayers[0].render(g); // renderiza Layer01-sky
         listaTileLayers[1].render(g); // renderiza Layer02-sky
         listaTileLayers[2].render(g); // renderiza Layer03-back
         person.render(g); // renderiza o personagem
         listaTileLayers[3].render(g); // renderiza Layer04-front
+
+        renderLevel(g); // especificidade de quem herda
     }
+
+    // métodos abstratos ***********************************************
+    public abstract void handlerEventsLevel();
+    public abstract void updateLevel();
+    public abstract void renderLevel(Graphics g);
 
     // métodos *********************************************************
     private void parseTileLayer(JSONArray jsonLayers) {

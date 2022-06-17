@@ -30,6 +30,9 @@ public class TileLayer extends Layer{
     }
 
     @Override
+    public void handlerEvents(){}
+
+    @Override
     public void render(Graphics g) {
         for (int i = 0; i < tileIDs.length; i++) { // linhas
             int valor = tileIDs[i];

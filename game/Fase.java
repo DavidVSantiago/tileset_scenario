@@ -2,6 +2,7 @@ package game;
 
 import engine.Level;
 import engine.Person;
+import java.awt.Graphics;
 
 public class Fase extends Level{
     // atributos -------------------------------------------------------
@@ -11,8 +12,19 @@ public class Fase extends Level{
         super(mapaFase,imagemDir,Recursos.camera,Recursos.keyState,person);
     }
 
-    // métodos gameloop -------------------------------------------------
-
+    // métodos gameloop indiretos ---------------------------------------
+    @Override
+    public void handlerEventsLevel() {
+      
+    }
+    @Override
+    public void updateLevel() {
+        
+    }
+    @Override
+    public void renderLevel(Graphics g) {
+        
+    }
 
     // métodos ----------------------------------------------------------
     @Override

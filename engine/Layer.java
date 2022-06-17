@@ -2,7 +2,7 @@ package engine;
 
 import java.awt.Graphics;
 
-public abstract class Layer {
+public abstract class Layer implements IGameloop{
     // atributos -------------------------------------------------------
     public float posX, posY; // posição de desenho do layer
     public float velX, velY;

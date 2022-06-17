@@ -3,9 +3,7 @@ package engine;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
-import game.Recursos;
-
-public class Person{
+public abstract class Person{
     // atributos ---------------------------------------------------
     public BufferedImage img;
 	public int largura, altura;
@@ -14,32 +12,21 @@ public class Person{
     public float limiteHorizontal,limiteVertical;
 
     // construtor --------------------------------------------------
-    public Person(){
-        largura=15;
-		altura=25;
-		posX = (Recursos.tamanhoTela.width/2)-(largura/2);
-		posY = (Recursos.tamanhoTela.height/2)-(altura/2);
-        velX = velY = 0;
-        velBase = 5;
-        limiteHorizontal = (Recursos.tamanhoTela.width/2.0f);
-        limiteVertical = (Recursos.tamanhoTela.height/2.0f);
+    public Person(int telaLargura, int telaAltura){
+        largura=32; // com base na imagem
+		altura=32; // // com base na imagem
+        posX=(telaLargura/2.0f)-(largura/2);
+        posY=(telaAltura/2.0f)-(altura/2);
+        velBase = 1;
+        limiteHorizontal = (telaLargura/2.0f);
+        limiteVertical = (telaAltura/2.0f);
     }
 
     // Métodos gameloop --------------------------------------------
-    public void update(){
-        checarColisaoLevel();
-    }
-    public void render(Graphics g) {
-        g.fillRect((int)posX,(int)posY,largura,altura);
-    }
+    public abstract void update();
+    public abstract void render(Graphics g);
 
-    // Métodos ----------------------------------------------------
-    public void checarColisaoLevel(){
-        // colisão com limites do Level
-        if(posX<0) posX=0;
-        if(posX+largura>Recursos.tamanhoTela.width) posX=Recursos.tamanhoTela.width-largura;
-    }
-
+    // Métodos --------------------------------------------
     public float getCentroX(){
         return posX + (largura/2.0f);
     }

@@ -9,7 +9,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.Dimension;
 
-public abstract class GameLoop extends JPanel {
+public abstract class GameLoop extends JPanel implements IGameloop{
     // atributos -------------------------------------------------------
     protected KeyState keyState;
     protected Thread gameThread;
@@ -95,10 +95,6 @@ public abstract class GameLoop extends JPanel {
 			}catch (Exception e) {}
 		}
 	}
-
-    public abstract void handlerEvents();
-	public abstract void update();
-	public abstract void render(Graphics g);
 
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
