@@ -1,8 +1,9 @@
-package game;
+package engine;
 
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import scenario.Level;
+
+import game.Recursos;
 
 public class Person{
     // atributos ---------------------------------------------------
@@ -16,12 +17,12 @@ public class Person{
     public Person(){
         largura=15;
 		altura=25;
-		posX = (Recursos.LARGURA_TELA/2)-(largura/2);
-		posY = (Recursos.ALTURA_TELA/2)-(altura/2);
+		posX = (Recursos.tamanhoTela.width/2)-(largura/2);
+		posY = (Recursos.tamanhoTela.height/2)-(altura/2);
         velX = velY = 0;
-        velBase = 2;
-        limiteHorizontal = (Recursos.LARGURA_TELA/2.0f);
-        limiteVertical = (Recursos.ALTURA_TELA/2.0f);
+        velBase = 5;
+        limiteHorizontal = (Recursos.tamanhoTela.width/2.0f);
+        limiteVertical = (Recursos.tamanhoTela.height/2.0f);
     }
 
     // Métodos gameloop --------------------------------------------
@@ -36,7 +37,7 @@ public class Person{
     public void checarColisaoLevel(){
         // colisão com limites do Level
         if(posX<0) posX=0;
-        if(posX+largura>Recursos.LARGURA_TELA) posX=Recursos.LARGURA_TELA-largura;
+        if(posX+largura>Recursos.tamanhoTela.width) posX=Recursos.tamanhoTela.width-largura;
     }
 
     public float getCentroX(){
