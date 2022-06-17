@@ -9,7 +9,7 @@ public class Fase extends Level{
 
     // construtor -------------------------------------------------------
     public Fase(String mapaFase,String imagemDir,Person person){
-        super(mapaFase,imagemDir,Recursos.camera,Recursos.keyState,person);
+        super(mapaFase,imagemDir,person);
     }
 
     // métodos gameloop indiretos ---------------------------------------
@@ -34,5 +34,6 @@ public class Fase extends Level{
         listaTileLayers[1].tileset = listaTilesets[1]; // Layer02-sky
         listaTileLayers[2].tileset = listaTilesets[2]; // Layer03-back
         listaTileLayers[3].tileset = listaTilesets[2]; // Layer04-front
+        listaTileLayers[4].tileset = listaTilesets[2]; // Layer05-collision
     }
 }

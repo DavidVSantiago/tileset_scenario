@@ -1,6 +1,7 @@
 package engine;
 
-public class Camera {
+class Camera {
+    public static Camera singleton = null;
     // atributos
     public float posX,posY;
     public float velX,velY,velBase;
@@ -32,11 +33,11 @@ public class Camera {
         if(posY+altura>levelAtual.alturaLevel) posY=levelAtual.alturaLevel-altura;
     }
 
-    public boolean tileForaDaCamera(int dx1,int dy1,int dx2,int dy2,float fatorParalaxeX,float fatorParalaxeY){
-        if(dx1>(posX*fatorParalaxeX)+largura ||
-           dx2<posX*fatorParalaxeX ||
-           dy1>(posY*fatorParalaxeY)+altura ||
-           dy2<posY*fatorParalaxeY){
+    public boolean tileForaDaCamera(Tile tile,float fatorParalaxeX,float fatorParalaxeY){
+        if(tile.x1>(posX*fatorParalaxeX)+largura ||
+            tile.x2<posX*fatorParalaxeX ||  
+            tile.y1>(posY*fatorParalaxeY)+altura ||
+            tile.y2<posY*fatorParalaxeY){
                 return true;
         }
         return false;

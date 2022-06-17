@@ -12,7 +12,7 @@ public class Tileset {
     int larguraTileset, alturaTileset; // dimensões da imagem do tileset (em pixel)
     int qtdTiles; // quantidade total de tiles no tileset
     int qtdColunasTileset; // quantidade de colunas do tileset
-    public Tile[] tiles; // retangulos de recorte do tileset
+    public Tile[] tilesOrigem; // retangulos de recorte do tileset
 
     // construtor
     public Tileset(BufferedImage img, int firstGridId,
@@ -30,19 +30,18 @@ public class Tileset {
         this.qtdTiles = qtdTiles;
         this.qtdColunasTileset = qtdColunasTileset;
         // inicializa todos os tiles de recorte do tileset
-        tiles = new Tile[qtdTiles];
+        tilesOrigem = new Tile[qtdTiles];
         for (int i = 0; i < qtdTiles; i++) {
             int x1 = (i % qtdColunasTileset) * larguraTile;
             int y1 = (i / qtdColunasTileset) * alturaTile;
             int x2 = x1 + larguraTile;
             int y2 = y1 + alturaTile;
-            tiles[i] = new Tile(x1, y1, x2, y2);
-            // System.out.println("x1:"+x1);
+            tilesOrigem[i] = new Tile(x1, y1, x2, y2, i);
         }
     }
 
-    public Tile getTile(int tileId) {
-        return tiles[tileId];
+    public Tile obterTileOrigem(int tileId) {
+        return tilesOrigem[tileId];
     }
 
 }

@@ -18,14 +18,10 @@ public abstract class Level implements IGameloop{
     public int qtdColunasLevel, qtdLinhasLevel; // largura e altura de todo o cenario (em tiles)
     public int larguraLevel,alturaLevel;
     public Person person; 
-    public Camera camera;
-    public KeyState keyState;
 
     // construtor
-    public Level(String arquivoLevel,String imagensDir,Camera camera,KeyState keyState,Person person) {
+    public Level(String arquivoLevel,String imagensDir,Person person) {
         this.imagensDir = imagensDir;
-        this.camera = camera;
-        this.keyState = keyState;
         this.person = person;
         // carrega o arquivo json do cenario
         JSONObject fullJson = carregarJson(arquivoLevel);
@@ -40,15 +36,15 @@ public abstract class Level implements IGameloop{
         // atribui os tilesets aos seus respectivos layers
         atribuiTilesetsLayers();
 
-        // normaliza os tileIDs dos tilelayers
+        // normaliza os tileIDs e cria os tiles de destino (os desenhados na tela)
         for(int i=0;i<listaTileLayers.length;i++){
-            for(int j=0;j<listaTileLayers[i].tileIDs.length;j++){
-                if(listaTileLayers[i].tileIDs[j]==0) continue;
-                listaTileLayers[i].tileIDs[j] = (listaTileLayers[i].tileIDs[j]-listaTileLayers[i].tileset.firstGridId)+1;
-            }
+            listaTileLayers[i].normalizaIDs();
+            listaTileLayers[i].criaTilesDestino();
         }
-        camera.levelAtual = this;
+
+        Camera camera = Recursos.getInstance().camera;
         camera.posY = alturaLevel-camera.altura; // camera, por padrão, começa no canto inferior esquerdo do cenário       
+        camera.levelAtual = this; // obrigatório, para a camera poder calcular o seu deslocamento dentro do mapa
     }
 
     /** Implemente este método e especifique quais os tilesets associados a quais layers do level */
@@ -56,112 +52,23 @@ public abstract class Level implements IGameloop{
 
     // métodos gameloop ***********************************************
     public final void handlerEvents() {
-        /** Modificar a velocidade do person de acordo com a movimentação dos direcionais */
-        person.velX = 0;
-        person.velY = 0;
-        if (keyState.k_direita) {
-            person.velX = person.velBase;
-            if (keyState.k_cima) {
-                person.velY = -person.velBase;
-            } else if (keyState.k_baixo) {
-                person.velY = person.velBase;
-            }
-        } else if (keyState.k_esquerda) {
-            person.velX = -person.velBase;
-            if (keyState.k_cima) {
-                person.velY = -person.velBase;
-            } else if (keyState.k_baixo) {
-                person.velY = person.velBase;
-            }
-        } else if (keyState.k_cima) {
-            person.velY = -person.velBase;
-        } else if (keyState.k_baixo) {
-            person.velY = person.velBase;
-        }
+        person.handlerEvents();
 
         handlerEventsLevel(); // especificidade de quem herda
     }
 
     public final void update() {
-        
-        // atualiza a camera com base na velocidade do personagem ******************************
-        if(camera.cameraEsquerdaLevel()){ // camera na esquerda do level
-            // movimentação horizontal ---------------------------------
-            System.out.println("Centro X: "+person.getCentroX()+person.velX);
-            System.out.println("Limite H: "+person.limiteHorizontal);
-            if(person.getCentroX()+person.velX<=person.limiteHorizontal){ // personagem dentro da primeira metade da tela
-                person.posX+=person.velX;
-            }else{
-                camera.posX+=person.velX;
-            }
-            // movimentação vertical -----------------------------------
-            if(camera.cameraInferiorLevel()){ // camera na parte inferior esquerda do level
-                if(person.getCentroY()+person.velY>=person.limiteVertical){ // personagem na parte infeior da tela
-                    person.posY+=person.velY;
-                }else{
-                    camera.posY+=person.velY;
-                }
-            }else if(camera.cameraSuperiorLevel()){ // camera na parte superior esquerda do level
-                if(person.getCentroY()+person.velY<=person.limiteVertical){ // personagem na parte superior da tela
-                    person.posY+=person.velY;
-                }else{
-                    camera.posY+=person.velY;
-                }
-            }else{ // camera apenas na parte esquerda da tela 
-                camera.posY+=person.velY;
-            }
-        }else  if(camera.cameraDireitaLevel()){ // camera na direita do level
-            // movimentação horizontal ---------------------------------
-            if(person.getCentroX()+person.velX>=person.limiteHorizontal){ // personagem dentro da segunda metade da tela
-                person.posX+=person.velX;
-            }else{
-                camera.posX+=person.velX;
-            }
-            // movimentação vertical -----------------------------------
-            if(camera.cameraInferiorLevel()){ // camera na parte inferior direita do level
-                if(person.getCentroY()+person.velY>=person.limiteVertical){ // personagem na parte infeior da tela
-                    person.posY+=person.velY;
-                }else{
-                    camera.posY+=person.velY;
-                }
-            }else if(camera.cameraSuperiorLevel()){ // camera na parte superior direita do level
-                if(person.getCentroY()+person.velY<=person.limiteVertical){ // personagem na parte superior da tela
-                    person.posY+=person.velY;
-                }else{
-                    camera.posY+=person.velY;
-                }
-            }else{ // camera apenas na parte direita da tela 
-                camera.posY+=person.velY;
-            }
-        }else{ // camera no centro horizontal
-            camera.posX+=person.velX;
-            // movimentação vertical -----------------------------------
-            if(camera.cameraInferiorLevel()){ // camera na parte inferior do level
-                if(person.getCentroY()+person.velY>=person.limiteVertical){ // personagem na parte infeior da tela
-                    person.posY+=person.velY;
-                }else{
-                    camera.posY+=person.velY;
-                }
-            }else if(camera.cameraSuperiorLevel()){ // camera na parte superior do level
-                if(person.getCentroY()+person.velY<=person.limiteVertical){ // personagem na parte superior da tela
-                    person.posY+=person.velY;
-                }else{
-                    camera.posY+=person.velY;
-                }
-            }else{ // camera livre no meio da tela
-                camera.posY+=person.velY;
-            }
-        }
-        camera.checarColisao();
+        // atualiza o personagem
+        person.update();
             
-        // atualiza todos os layers do level
+        // atualiza todos os layers do level (ainda sem função)
         for (int i = 0; i < listaTileLayers.length; i++) {
             listaTileLayers[i].update();
         }
-        
-        person.update();
 
         updateLevel(); // especificidade de quem herda
+
+        colisaoPersonLevel(); // Testa a colisão do personagem com os tiles do cenário
     }
 
     public final void render(Graphics g) {
@@ -233,4 +140,39 @@ public abstract class Level implements IGameloop{
 			throw new NullPointerException("Arquivo "+ arquivo +" não existe!");
 		return new JSONObject(new JSONTokener(inputStream));
 	}
+    
+    // métodos de colisão *******************************************
+    /** Testa a colisão do personagem com os tiles do cenário */
+    public void colisaoPersonLevel(){
+        TileLayer layer05 = listaTileLayers[4]; // Layer05-collision (colidível)
+        Tile[] tilesDestino = layer05.tilesDestino; // obtem a lista de tiles de destino do layer03
+        for(int i=0; i<tilesDestino.length;i++){ // percorre todos os tiles de destino do layer 03
+            Tile tileDestino = tilesDestino[i];
+            if(tileDestino.ID==0)continue; // id 0 se refere a nenhum tile
+            // se o tile de destino estiver fora da camera, não testa colisão
+            Camera camera = Recursos.getInstance().camera;
+            if(camera.tileForaDaCamera(tileDestino,layer05.fatorParalaxeX,layer05.fatorParalaxeY)) continue;
+            if(tileDestino.ID-1!=2)continue; // se não for um tile de colisão
+            // testa a colisão do personagem com cada tile dentro da camera
+            System.out.println("Person: "+person.caixaColisao.y2);
+            System.out.println("Tile: "+(tileDestino.y1-camera.posY));
+            if(checaColisaoRed(tileDestino,camera)){ // se o person colide com a parte de cima
+                // recoloca o personagem acima do tile
+                person.posY=(tileDestino.y1-person.altura)-camera.posY;
+                person.updateCaixaColisao();
+                person.ESTADO = EstadoPerson.PARADO;
+            }
+        }
+    }
+
+    public boolean checaColisaoRed(Tile tile, Camera camera){
+        float tileX1 = tile.x1-camera.posX;
+        float tileX2 = tile.x2-camera.posX;
+        float tileY1 = tile.y1-camera.posY;
+        // verifica se intersede horizontalmente o tile
+        if(person.caixaColisao.x2>tileX1 && person.caixaColisao.x1<tileX2 &&
+           person.caixaColisao.y2>tileY1) // verifica se intersede de cima para baixo
+            return true;
+        return false;
+    }
 }

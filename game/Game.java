@@ -3,16 +3,21 @@ package game;
 import java.awt.Graphics;
 import engine.GameLoop;
 import engine.Level;
+import engine.Person;
+import engine.Recursos;
 
 public class Game extends GameLoop{
 	private Level level;
+	private Person person;
 	
 	public Game() {
-		super(Recursos.keyState, Recursos.tamanhoTela, "Jogo Tiled");
-		Recursos.carregaAssets();
-		level = new Fase("/assets/cenario_01.tmj","/assets/",new Personagem());
-		iniciarJogo();
+		Recursos.getInstance().initRecursos(426,240);
+		person = new Personagem();
+		level = new Fase("/assets/cenario_01.tmj","/assets/",person);	
+		iniciarJogo("Jogo Tiled");
 	}
+
+	
 	// GAMELOOP -------------------------------
 	@Override
 	public void handlerEvents() {
