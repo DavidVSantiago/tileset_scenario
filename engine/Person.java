@@ -1,6 +1,7 @@
 package engine;
 
 import java.awt.Graphics;
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 
 public abstract class Person{
@@ -8,10 +9,10 @@ public abstract class Person{
     public BufferedImage img;
 	public int largura, altura;
 	public float posX, posY;
-	public float velX, velY, velBase;
+	public float velX, velY, velBaseX, velBaseY;
     public float limiteHorizontal,limiteVertical;
     public EstadoPerson ESTADO;
-    public Rectangle caixaColisao;
+    public Rectangle caixaColisao, caixaMove;
 
     // construtor --------------------------------------------------
     public Person(){
@@ -19,44 +20,38 @@ public abstract class Person{
 		altura=32; // // com base na imagem
         posX=(Recursos.getInstance().tamanhoTela.width/2.0f)-(largura/2);
         posY=(Recursos.getInstance().tamanhoTela.height/2.0f)-(altura/2);
-        velBase = 1;
+        velBaseX = 1;
+        velBaseY = 3;
         velY=0;
         limiteHorizontal = (Recursos.getInstance().tamanhoTela.width/2.0f);
         limiteVertical = (Recursos.getInstance().tamanhoTela.height/2.0f);
         ESTADO = EstadoPerson.PARADO;
         caixaColisao = new Rectangle((int)(posX+2), (int)(posY+2), (int)((posX+largura)-2), (int)(posY+altura));
+        caixaMove = new Rectangle((int)(Recursos.getInstance().tamanhoTela.width*0.40),
+                                  (int)(Recursos.getInstance().tamanhoTela.height*0.38),
+                                  (int)(Recursos.getInstance().tamanhoTela.width*0.6),
+                                  (int)(Recursos.getInstance().tamanhoTela.height*0.72));
     }
 
     // Métodos gameloop --------------------------------------------
     public void handlerEvents(){
-        /** Modificar a velocidade do person de acordo com a movimentação dos direcionais */
-        KeyState keyState = Recursos.getInstance().keyState;
-        velX = 0;
-
-        if (keyState.k_direita) {
-            velX = velBase;
-        } else if (keyState.k_esquerda) {
-            velX = -velBase;
-        }
-        // se pressionar pra cima e não estiver pulando
-        if (keyState.k_cima && !isPulando()) {
-            iniciarPulo();
-        }else if (keyState.k_baixo && !isPulando()) {
-            velY = +velBase;
-        }
+        
     }
 
     public void update(){
-        posY+=velY;
-        if(isPulando()){
-            velY+=0.2f;
-        }
-        updateCamera();
+        
         checarColisaoLevel();
 
         updateCaixaColisao();
     }
-    public abstract void render(Graphics g);
+
+    public void render(Graphics g) {
+        g.fillRect((int)posX,(int)posY,largura,altura);
+        g.setColor(Color.GREEN);
+        g.drawRect(caixaColisao.x1,caixaColisao.y1,caixaColisao.x2-caixaColisao.x1,caixaColisao.y2-caixaColisao.y1);
+        g.setColor(Color.WHITE);
+        g.drawRect(caixaMove.x1,caixaMove.y1,caixaMove.x2-caixaMove.x1,caixaMove.y2-caixaMove.y1);
+    }
 
     // Métodos --------------------------------------------
     public float getCentroX(){
@@ -68,8 +63,7 @@ public abstract class Person{
     }
 
     public void iniciarPulo(){
-        ESTADO = EstadoPerson.PULANDO;
-        velY = -3;
+        
     }
 
     public void checarColisaoLevel(){
@@ -103,7 +97,47 @@ public abstract class Person{
         return ESTADO==EstadoPerson.MORRENDO;
     }
 
+    public boolean colideCaixaMoveDireita(){
+        Camera camera = Recursos.getInstance().camera;
+        if(posX+largura+camera.velX>=caixaMove.x2){
+            posX = (caixaMove.x2-largura);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean colideCaixaMoveEsquerda(){
+        Camera camera = Recursos.getInstance().camera;
+        if(posX+camera.velX<=caixaMove.x1){
+            posX = caixaMove.x1;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean colideCaixaMoveBaixo(){
+        Camera camera = Recursos.getInstance().camera;
+        if(posY+altura+camera.velY>=caixaMove.y2){
+            posY = caixaMove.y2-altura;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean colideCaixaMoveCima(){
+        Camera camera = Recursos.getInstance().camera;
+        if(posY+camera.velY<=caixaMove.y1){
+            posY = caixaMove.y1;
+            return true;
+        }
+        return false;
+    }
+
     public void updateCamera(){
+
+    }
+
+    public void updateCameraOld(){
         // atualiza a camera com base na velocidade do personagem ******************************
         Camera camera = Recursos.getInstance().camera;
         if(camera.cameraEsquerdaLevel()){ // camera na esquerda do level
