@@ -66,45 +66,53 @@ public abstract class Person{
         // atualiza a movimento da camera
         if(colideCaixaMoveDireita() ||
            colideCaixaMoveEsquerda()){ // se o person colide com os limites esquerdo e direito
-            camera.posX += camera.velX; // move a camera
+            camera.moverHorizontal(); // move a camera horizontalmente
         }else{ // se o person não colide com os limites esquerdo e direito
-            posX += camera.velX; // move o personagem horizontalmente
+            moverHorizontal(camera); // move o personagem horizontalmente
         }
         
         if(colideCaixaMoveCima() ||
            colideCaixaMoveBaixo()){ // se o person colide com os limites superior e inferior
-            camera.posY += camera.velY; // move a camera
+            camera.moverVertical(); // move a camera verticalmente
         }else{ // se o person não colide com os limites superior e inferior
-            posY += camera.velY; // move o personagem verticalmente
+            moverVertical(camera); // move o personagem verticalmente
         }
-
+        System.out.println(ESTADO);
         if(isPULANDO() && camera.velY<=camera.limiteVelY){
-            camera.velY+=camera.decremVelY;
+            camera.velY+=camera.decremVelY; // decrementa a velocidade vertical, para o personagem descer
         }
         atualizaCaixaColisao();
     }
 
     public void render(Graphics g) {
-        g.fillRect((int)posX,(int)posY,largura,altura);
+        //g.fillRect((int)posX,(int)posY,largura,altura);
         g.setColor(Color.GREEN);
         g.drawRect((int)caixaColisao.x1,(int)caixaColisao.y1,(int)(caixaColisao.x2-caixaColisao.x1),(int)(caixaColisao.y2-caixaColisao.y1));
         g.setColor(Color.WHITE);
         g.drawRect((int)caixaMove.x1,(int)caixaMove.y1,(int)(caixaMove.x2-caixaMove.x1),(int)(caixaMove.y2-caixaMove.y1));
     }
 
-    // Métodos --------------------------------------------
+    // Métodos posicionamento --------------------------------------------
+
+    public void moverHorizontal(Camera camera){
+        caixaColisao.x1 += camera.velX;
+        caixaColisao.x2 += camera.velX;
+    }
+
+    public void moverVertical(Camera camera){
+        caixaColisao.y1 += camera.velY;
+        caixaColisao.y2 += camera.velY;
+    }
+
     public float getCentroX(){
         return posX + (largura/2.0f);
     }
-
+    
     public float getCentroY(){
         return posY + (altura/2.0f);
     }
-
-    public void iniciarPulo(){
-        
-    }
-
+    
+    // Métodos de colisão --------------------------------------------
     public void checarColisaoLevel(){
         // colisão com limites do Level
         if(posX<0) posX=0;
@@ -114,10 +122,10 @@ public abstract class Person{
 
     public void atualizaCaixaColisao(){
         // atualiza a posição do sprite em relação a atualização da caixa de colisão
-        caixaColisao.x1 = posX+fatorDiminuicaoColisao;
-        caixaColisao.x2 = (posX+largura)-fatorDiminuicaoColisao;
-        caixaColisao.y1 = posY+fatorDiminuicaoColisao;
-        caixaColisao.y2 = posY+altura;
+        //caixaColisao.x1 = posX+fatorDiminuicaoColisao;
+        //caixaColisao.x2 = (posX+largura)-fatorDiminuicaoColisao;
+        //caixaColisao.y1 = posY+fatorDiminuicaoColisao;
+        //caixaColisao.y2 = posY+altura;
     }
 
     // Métodos Verificadores de ESTADO ----------------------------------
@@ -142,7 +150,7 @@ public abstract class Person{
     // Métodos de modificação de ESTADO ----------------------------------
     public void entraEstadoPARADO(){
         Camera camera = Recursos.getInstance().camera;
-        camera.velY=camera.velBaseY;
+        camera.velY=camera.velBaseY*0.3f; // velicidade de caida mais lenta quando parado, para diminuir a velocidade de caída das plataformas
         ESTADO = EstadoPerson.PARADO;
     }
     public void entraEstadoPAREDE(){
@@ -165,8 +173,10 @@ public abstract class Person{
 
     public boolean colideCaixaMoveDireita(){
         Camera camera = Recursos.getInstance().camera;
-        if(caixaColisao.x2+camera.velX>caixaMove.x2){
-            posX = caixaMove.x2-largura+fatorDiminuicaoColisao;
+        if(caixaColisao.x2+camera.velX>caixaMove.x2){ // colide à direita do limite de movimentação
+            float largura = caixaColisao.x2-caixaColisao.x1;
+            caixaColisao.x2 = caixaMove.x2;
+            caixaColisao.x1=caixaColisao.x2-largura;
             return true;
         }
         return false;
@@ -174,8 +184,10 @@ public abstract class Person{
 
     public boolean colideCaixaMoveEsquerda(){
         Camera camera = Recursos.getInstance().camera;
-        if(caixaColisao.x1+camera.velX<caixaMove.x1){
-            posX = caixaMove.x1-fatorDiminuicaoColisao;
+        if(caixaColisao.x1+camera.velX<caixaMove.x1){ // colide à esquerda do limite de movimentação
+            float largura = caixaColisao.x2-caixaColisao.x1;
+            caixaColisao.x1 = caixaMove.x1;
+            caixaColisao.x2=caixaColisao.x1+largura;
             return true;
         }
         return false;
@@ -184,7 +196,9 @@ public abstract class Person{
     public boolean colideCaixaMoveBaixo(){
         Camera camera = Recursos.getInstance().camera;
         if(caixaColisao.y2+camera.velY>caixaMove.y2){
-            posY = caixaMove.y2-altura;
+            float altura = caixaColisao.y2-caixaColisao.y1;
+            caixaColisao.y2 = caixaMove.y2;
+            caixaColisao.y1=caixaColisao.y2-altura;
             return true;
         }
         return false;
@@ -193,7 +207,9 @@ public abstract class Person{
     public boolean colideCaixaMoveCima(){
         Camera camera = Recursos.getInstance().camera;
         if(caixaColisao.y1+camera.velY<caixaMove.y1){
-            posY = caixaMove.y1-fatorDiminuicaoColisao;
+            float altura = caixaColisao.y2-caixaColisao.y1;
+            caixaColisao.y1 = caixaMove.y1;
+            caixaColisao.y2=caixaColisao.y1+altura;
             return true;
         }
         return false;

@@ -30,6 +30,17 @@ class Camera {
     public void update(){
         
     }
+
+    // Métodos posicionamento --------------------------------------------
+
+    public void moverHorizontal(){
+        posX += velX;
+    }
+
+    public void moverVertical(){
+        posY += velY;
+    }
+
     // metodos --------------------------------
 
     public void checarColisao(){

@@ -171,7 +171,9 @@ public abstract class Level implements IGameloop{
         // verifica se colide de cima para baixo
         if(pY2>tileY1 && pY2-cVelY < pY2){
             // recoloca o personagem acima do tile
-            person.posY=(tileY1-person.altura);
+            float altura = person.caixaColisao.y2-person.caixaColisao.y1;
+            person.caixaColisao.y2=tileY1;
+            person.caixaColisao.y1=person.caixaColisao.y2-altura;
             person.atualizaCaixaColisao();
             person.entraEstadoPARADO();
         }
@@ -194,17 +196,21 @@ public abstract class Level implements IGameloop{
         // se o personagem não colide com o tile
         if(!(pX1<tileX2 && pY2>tileY1)) return;
         // calcula o fator de aproximação horizontal (mais sobre a quina ou mais ao lado da quina)
+        pY2-=camera.velY; // correção de queda na quina
         float fatorH = Math.abs(pX1-tileX2);
         float fatorV = Math.abs(pY2-tileY1);
-        
         if(fatorH>fatorV){ // aproximação por cima
             // recoloca o personagem acima do tile
-            person.posY=tileY1-person.altura;
+            float altura = person.caixaColisao.y2-person.caixaColisao.y1;
+            person.caixaColisao.y2=tileY1;
+            person.caixaColisao.y1=person.caixaColisao.y2-altura;
             person.atualizaCaixaColisao();
             person.entraEstadoPARADO();
-        }else{ // aproximação pelo lado
+        }else{ // aproximação pelo lado direito
             /// recoloca o personagem na posição anterior
-            person.posX=tileX2-person.fatorDiminuicaoColisao;
+            float largura = person.caixaColisao.x2-person.caixaColisao.x1;
+            person.caixaColisao.x1=tileX2;
+            person.caixaColisao.x2=person.caixaColisao.x1+largura;
             person.atualizaCaixaColisao();
             person.entraEstadoPAREDE();
         }
@@ -229,7 +235,9 @@ public abstract class Level implements IGameloop{
         // verifica se colide da direita para a esquerda
         if(pX1<tileX2 && pX1-cVelX >= pX1){
             // recoloca o personagem na posição anterior
-            person.posX=(tile.x2)-camera.posX-person.fatorDiminuicaoColisao;
+            float largura = person.caixaColisao.x2-person.caixaColisao.x1;
+            person.caixaColisao.x1=tileX2;
+            person.caixaColisao.x2=person.caixaColisao.x1+largura;
             person.atualizaCaixaColisao();
             person.entraEstadoPAREDE();
         }
