@@ -29,7 +29,13 @@ public class TileLayer extends Layer{
     }
 
     @Override
-    public void handlerEvents(){}
+    public void handlerEvents(long tempoDelta){}
+
+    @Override
+    public void update(long tempoDelta) {
+        // TODO Auto-generated method stub
+        
+    }
 
     @Override
     public void render(Graphics g) {

@@ -20,13 +20,12 @@ public class Game extends GameLoop{
 	
 	// GAMELOOP -------------------------------
 	@Override
-	public void handlerEvents() {
-		level.handlerEvents();
+	public void handlerEvents(long tempoDelta) {
+		level.handlerEvents(tempoDelta);
 	}
 	@Override
-	public void update() {
-		level.update();
-		testeColisoes();
+	public void update(long tempoDelta) {
+		level.update(tempoDelta);
 	}
 	@Override
 	public void render(Graphics g) {
@@ -35,10 +34,6 @@ public class Game extends GameLoop{
 	}
 	
 	// OUTROS METODOS -------------------------
-	public void testeColisoes() {
-		
-	}
-
 	public static void main(String[] args) {
 		new Game(); // dispara a aplica��o
 	}

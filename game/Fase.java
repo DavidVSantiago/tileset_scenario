@@ -13,18 +13,6 @@ public class Fase extends Level{
     }
 
     // métodos gameloop indiretos ---------------------------------------
-    @Override
-    public void handlerEventsLevel() {
-      
-    }
-    @Override
-    public void updateLevel() {
-        
-    }
-    @Override
-    public void renderLevel(Graphics g) {
-        
-    }
 
     // métodos ----------------------------------------------------------
     @Override

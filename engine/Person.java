@@ -13,6 +13,8 @@ public abstract class Person{
     public float limiteHorizontal,limiteVertical;
     public EstadoPerson ESTADO;
     public Rectangle caixaColisao, caixaMove;
+    public int fatorDiminuicaoColisao;
+
 
     // construtor --------------------------------------------------
     public Person(){
@@ -26,7 +28,8 @@ public abstract class Person{
         limiteHorizontal = (Recursos.getInstance().tamanhoTela.width/2.0f);
         limiteVertical = (Recursos.getInstance().tamanhoTela.height/2.0f);
         ESTADO = EstadoPerson.PARADO;
-        caixaColisao = new Rectangle((int)(posX+2), (int)(posY+2), (int)((posX+largura)-2), (int)(posY+altura));
+        fatorDiminuicaoColisao = 5;
+        caixaColisao = new Rectangle((int)(posX+fatorDiminuicaoColisao), (int)(posY+fatorDiminuicaoColisao), (int)((posX+largura)-fatorDiminuicaoColisao), (int)(posY+altura));
         caixaMove = new Rectangle((int)(Recursos.getInstance().tamanhoTela.width*0.40),
                                   (int)(Recursos.getInstance().tamanhoTela.height*0.38),
                                   (int)(Recursos.getInstance().tamanhoTela.width*0.6),
@@ -35,22 +38,58 @@ public abstract class Person{
 
     // Métodos gameloop --------------------------------------------
     public void handlerEvents(){
-        
+        KeyState keyState = Recursos.getInstance().keyState;
+        Camera camera = Recursos.getInstance().camera;
+        if (Recursos.getInstance().permiteMoverH) { // permite movimento horizontal
+            camera.velX = 0;
+            if (keyState.k_direita) {
+                camera.velX = camera.velBaseX;
+            } else if (keyState.k_esquerda) {
+                camera.velX = -camera.velBaseX;
+            }
+        }
+        // se pressionou para cima e não está pulando
+        if (keyState.k_cima && !isPULANDO()) {
+            if(isPAREDE()){
+                Recursos.getInstance().desabilitaMoverH(150);
+                camera.velX=camera.velBaseX;
+                entraEstadoPULANDOdaPAREDE();
+            }else{
+                entraEstadoPULANDO();
+            }
+        }
     }
 
     public void update(){
+        ESTADO = EstadoPerson.PULANDO;
+        Camera camera = Recursos.getInstance().camera;
+        // atualiza a movimento da camera
+        if(colideCaixaMoveDireita() ||
+           colideCaixaMoveEsquerda()){ // se o person colide com os limites esquerdo e direito
+            camera.posX += camera.velX; // move a camera
+        }else{ // se o person não colide com os limites esquerdo e direito
+            posX += camera.velX; // move o personagem horizontalmente
+        }
         
-        checarColisaoLevel();
+        if(colideCaixaMoveCima() ||
+           colideCaixaMoveBaixo()){ // se o person colide com os limites superior e inferior
+            camera.posY += camera.velY; // move a camera
+        }else{ // se o person não colide com os limites superior e inferior
+            posY += camera.velY; // move o personagem verticalmente
+        }
 
-        updateCaixaColisao();
+        if(isPULANDO() && camera.velY<=camera.limiteVelY){
+            camera.velY+=camera.decremVelY;
+        }
+        atualizaCaixaColisao();
     }
 
     public void render(Graphics g) {
         g.fillRect((int)posX,(int)posY,largura,altura);
         g.setColor(Color.GREEN);
-        g.drawRect(caixaColisao.x1,caixaColisao.y1,caixaColisao.x2-caixaColisao.x1,caixaColisao.y2-caixaColisao.y1);
+        g.drawRect((int)caixaColisao.x1,(int)caixaColisao.y1,(int)(caixaColisao.x2-caixaColisao.x1),(int)(caixaColisao.y2-caixaColisao.y1));
         g.setColor(Color.WHITE);
-        g.drawRect(caixaMove.x1,caixaMove.y1,caixaMove.x2-caixaMove.x1,caixaMove.y2-caixaMove.y1);
+        g.drawRect((int)caixaMove.x1,(int)caixaMove.y1,(int)(caixaMove.x2-caixaMove.x1),(int)(caixaMove.y2-caixaMove.y1));
     }
 
     // Métodos --------------------------------------------
@@ -73,34 +112,61 @@ public abstract class Person{
             posX=Recursos.getInstance().tamanhoTela.width-largura;
     }
 
-    public void updateCaixaColisao(){
-        caixaColisao.x1 = (int)posX+2;
-        caixaColisao.x2 = (int)(posX+largura)-2;
-        caixaColisao.y1 = (int)posY+2;
-        caixaColisao.y2 = (int)(posY+altura);
+    public void atualizaCaixaColisao(){
+        // atualiza a posição do sprite em relação a atualização da caixa de colisão
+        caixaColisao.x1 = posX+fatorDiminuicaoColisao;
+        caixaColisao.x2 = (posX+largura)-fatorDiminuicaoColisao;
+        caixaColisao.y1 = posY+fatorDiminuicaoColisao;
+        caixaColisao.y2 = posY+altura;
     }
 
     // Métodos Verificadores de ESTADO ----------------------------------
-    public boolean isParado(){
+    public boolean isPARADO(){
         return ESTADO==EstadoPerson.PARADO;
     }
-    public boolean isPulando(){
+    public boolean isPULANDO(){
         return ESTADO==EstadoPerson.PULANDO;
     }
-    public boolean isCorrendo(){
+    public boolean isCORRENDO(){
         return ESTADO==EstadoPerson.CORRENDO;
     }
-    public boolean isDano(){
+    public boolean isDANO(){
         return ESTADO==EstadoPerson.DANO;
     }
-    public boolean isMorrendo(){
+    public boolean isMORRENDO(){
         return ESTADO==EstadoPerson.MORRENDO;
     }
+    public boolean isPAREDE(){
+        return ESTADO==EstadoPerson.PAREDE;
+    }
+    // Métodos de modificação de ESTADO ----------------------------------
+    public void entraEstadoPARADO(){
+        Camera camera = Recursos.getInstance().camera;
+        camera.velY=camera.velBaseY;
+        ESTADO = EstadoPerson.PARADO;
+    }
+    public void entraEstadoPAREDE(){
+        Camera camera = Recursos.getInstance().camera;
+        camera.velY=camera.velBaseYParede;
+        ESTADO = EstadoPerson.PAREDE;
+    }
+    public void entraEstadoPULANDO(){
+        Camera camera = Recursos.getInstance().camera;
+        camera.velY=-camera.velBaseY;
+        ESTADO = EstadoPerson.PULANDO;
+    }
+    public void entraEstadoPULANDOdaPAREDE(){
+        Camera camera = Recursos.getInstance().camera;
+        camera.velY=-(camera.velBaseY/2);
+        ESTADO = EstadoPerson.PULANDO;
+    }
+
+    // Métodos da caixa de colisão ---------------------------------------
 
     public boolean colideCaixaMoveDireita(){
         Camera camera = Recursos.getInstance().camera;
-        if(posX+largura+camera.velX>=caixaMove.x2){
-            posX = (caixaMove.x2-largura);
+        if(caixaColisao.x2+camera.velX>caixaMove.x2){
+            posX = caixaMove.x2-largura+fatorDiminuicaoColisao;
             return true;
         }
         return false;
@@ -108,8 +174,8 @@ public abstract class Person{
 
     public boolean colideCaixaMoveEsquerda(){
         Camera camera = Recursos.getInstance().camera;
-        if(posX+camera.velX<=caixaMove.x1){
-            posX = caixaMove.x1;
+        if(caixaColisao.x1+camera.velX<caixaMove.x1){
+            posX = caixaMove.x1-fatorDiminuicaoColisao;
             return true;
         }
         return false;
@@ -117,7 +183,7 @@ public abstract class Person{
 
     public boolean colideCaixaMoveBaixo(){
         Camera camera = Recursos.getInstance().camera;
-        if(posY+altura+camera.velY>=caixaMove.y2){
+        if(caixaColisao.y2+camera.velY>caixaMove.y2){
             posY = caixaMove.y2-altura;
             return true;
         }
@@ -126,85 +192,10 @@ public abstract class Person{
 
     public boolean colideCaixaMoveCima(){
         Camera camera = Recursos.getInstance().camera;
-        if(posY+camera.velY<=caixaMove.y1){
-            posY = caixaMove.y1;
+        if(caixaColisao.y1+camera.velY<caixaMove.y1){
+            posY = caixaMove.y1-fatorDiminuicaoColisao;
             return true;
         }
         return false;
-    }
-
-    public void updateCamera(){
-
-    }
-
-    public void updateCameraOld(){
-        // atualiza a camera com base na velocidade do personagem ******************************
-        Camera camera = Recursos.getInstance().camera;
-        if(camera.cameraEsquerdaLevel()){ // camera na esquerda do level
-            // movimentação horizontal ---------------------------------
-            if(getCentroX()+velX<=limiteHorizontal){ // personagem dentro da primeira metade da tela
-                posX+=velX;
-            }else{
-                camera.posX+=velX;
-            }
-            // movimentação vertical -----------------------------------
-            if(camera.cameraInferiorLevel()){ // camera na parte inferior esquerda do level
-                if(getCentroY()+velY>=limiteVertical){ // personagem na parte infeior da tela
-                    posY+=velY;
-                }else{
-                    camera.posY+=velY;
-                }
-            }else if(camera.cameraSuperiorLevel()){ // camera na parte superior esquerda do level
-                if(getCentroY()+velY<=limiteVertical){ // personagem na parte superior da tela
-                    posY+=velY;
-                }else{
-                    camera.posY+=velY;
-                }
-            }else{ // camera apenas na parte esquerda da tela 
-                camera.posY+=velY;
-            }
-        }else  if(camera.cameraDireitaLevel()){ // camera na direita do level
-            // movimentação horizontal ---------------------------------
-            if(getCentroX()+velX>=limiteHorizontal){ // personagem dentro da segunda metade da tela
-                posX+=velX;
-            }else{
-                camera.posX+=velX;
-            }
-            // movimentação vertical -----------------------------------
-            if(camera.cameraInferiorLevel()){ // camera na parte inferior direita do level
-                if(getCentroY()+velY>=limiteVertical){ // personagem na parte infeior da tela
-                    posY+=velY;
-                }else{
-                    camera.posY+=velY;
-                }
-            }else if(camera.cameraSuperiorLevel()){ // camera na parte superior direita do level
-                if(getCentroY()+velY<=limiteVertical){ // personagem na parte superior da tela
-                    posY+=velY;
-                }else{
-                    camera.posY+=velY;
-                }
-            }else{ // camera apenas na parte direita da tela 
-                camera.posY+=velY;
-            }
-        }else{ // camera no centro horizontal
-            camera.posX+=velX;
-            // movimentação vertical -----------------------------------
-            if(camera.cameraInferiorLevel()){ // camera na parte inferior do level
-                if(getCentroY()+velY>=limiteVertical){ // personagem na parte infeior da tela
-                    posY+=velY;
-                }else{
-                    camera.posY+=velY;
-                }
-            }else if(camera.cameraSuperiorLevel()){ // camera na parte superior do level
-                if(getCentroY()+velY<=limiteVertical){ // personagem na parte superior da tela
-                    posY+=velY;
-                }else{
-                    camera.posY+=velY;
-                }
-            }else{ // camera livre no meio da tela
-                camera.posY+=velY;
-            }
-        }
-        camera.checarColisao();
     }
 }

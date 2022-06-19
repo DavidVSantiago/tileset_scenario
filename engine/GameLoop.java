@@ -7,13 +7,14 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.Dimension;
 
-public abstract class GameLoop extends JPanel implements IGameloop{
+public abstract class GameLoop extends JPanel implements IGameloop,KeyListener{
     // atributos -------------------------------------------------------
     private JFrame janela;
     protected Thread gameThread;
     protected EstadoJogo ESTADO;
+    private long tempoAtual, tempoAnterior, tempoDelta;
+    private int interval = 17;
 
     // construtor -------------------------------------------------------
     public GameLoop() {
@@ -39,12 +40,18 @@ public abstract class GameLoop extends JPanel implements IGameloop{
 
     // métodos gameloop -------------------------------------------------
     public void gameloop() {
+        tempoAnterior = System.currentTimeMillis();
 		while(true) { // repetição intermitente do gameloop
-			handlerEvents();
-			update();
+            tempoAtual = System.currentTimeMillis();
+			tempoDelta = tempoAtual-tempoAnterior;
+
+            handlerEvents(tempoDelta);
+			update(tempoDelta);
             repaint();
+
+            tempoAnterior = tempoAtual;
 			try {
-				Thread.sleep(17);
+				Thread.sleep(interval);
 			}catch (Exception e) {}
 		}
 	}
@@ -60,49 +67,56 @@ public abstract class GameLoop extends JPanel implements IGameloop{
         setPreferredSize(Recursos.getInstance().tamanhoTela);
         janela.setName(nome);
         janela.pack();
-        addKeyListener(new KeyListener() {
-            @Override
-            public void keyTyped(KeyEvent e) {
-
-            }
-
-            @Override
-            public void keyReleased(KeyEvent e) {
-                switch (e.getKeyCode()) {
-                    case KeyEvent.VK_UP:
-                        Recursos.getInstance().keyState.k_cima = false;
-                        break;
-                    case KeyEvent.VK_DOWN:
-                        Recursos.getInstance().keyState.k_baixo = false;
-                        break;
-                    case KeyEvent.VK_LEFT:
-                        Recursos.getInstance().keyState.k_esquerda = false;
-                        break;
-                    case KeyEvent.VK_RIGHT:
-                        Recursos.getInstance().keyState.k_direita = false;
-                        break;
-                }
-            }
-
-            @Override
-            public void keyPressed(KeyEvent e) {
-                switch (e.getKeyCode()) {
-                    case KeyEvent.VK_UP:
-                        Recursos.getInstance().keyState.k_cima = true;
-                        break;
-                    case KeyEvent.VK_DOWN:
-                        Recursos.getInstance().keyState.k_baixo = true;
-                        break;
-                    case KeyEvent.VK_LEFT:
-                        Recursos.getInstance().keyState.k_esquerda = true;
-                        break;
-                    case KeyEvent.VK_RIGHT:
-                        Recursos.getInstance().keyState.k_direita = true;
-                        break;
-                }
-            }
-        });
+        addKeyListener(this);
         gameThread.start();
     }
 
+    // ************************************************************************
+    @Override
+    public void keyTyped(KeyEvent e) {}
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_UP:
+                Recursos.getInstance().keyState.k_cima = false;
+                break;
+            case KeyEvent.VK_DOWN:
+                Recursos.getInstance().keyState.k_baixo = false;
+                break;
+            case KeyEvent.VK_LEFT:
+                Recursos.getInstance().keyState.k_esquerda = false;
+                break;
+            case KeyEvent.VK_RIGHT:
+                Recursos.getInstance().keyState.k_direita = false;
+                break;
+            case KeyEvent.VK_1:
+                interval=17;
+                break;
+            case KeyEvent.VK_2:
+                interval=100;
+                break;
+            case KeyEvent.VK_3:
+                interval=250;
+                break;
+        }
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_UP:
+                Recursos.getInstance().keyState.k_cima = true;
+                break;
+            case KeyEvent.VK_DOWN:
+                Recursos.getInstance().keyState.k_baixo = true;
+                break;
+            case KeyEvent.VK_LEFT:
+                Recursos.getInstance().keyState.k_esquerda = true;
+                break;
+            case KeyEvent.VK_RIGHT:
+                Recursos.getInstance().keyState.k_direita = true;
+                break;
+        }
+    }
 }

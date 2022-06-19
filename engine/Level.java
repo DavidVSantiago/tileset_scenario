@@ -17,12 +17,13 @@ public abstract class Level implements IGameloop{
     public Tileset[] listaTilesets; // lista com todos os layers do cenário
     public int qtdColunasLevel, qtdLinhasLevel; // largura e altura de todo o cenario (em tiles)
     public int larguraLevel,alturaLevel;
-    public Person person; 
+    public Person person;
 
     // construtor
     public Level(String arquivoLevel,String imagensDir,Person person) {
         this.imagensDir = imagensDir;
         this.person = person;
+        person.ESTADO=EstadoPerson.PULANDO;
         // carrega o arquivo json do cenario
         JSONObject fullJson = carregarJson(arquivoLevel);
         qtdColunasLevel = fullJson.getInt("width");
@@ -51,58 +52,19 @@ public abstract class Level implements IGameloop{
     public abstract void atribuiTilesetsLayers();
 
     // métodos gameloop ***********************************************
-    public final void handlerEvents() {
-        KeyState keyState = Recursos.getInstance().keyState;
-        Camera camera = Recursos.getInstance().camera;
-        camera.velX=0;
-        //if(!person.isPulando())
-            //camera.velY=0;
-        // atualiza a velocidade da camera
-        if (keyState.k_direita) {
-            camera.velX = camera.velBaseX;
-        } else if (keyState.k_esquerda) {
-            camera.velX = -camera.velBaseX;
-        }
-        if (keyState.k_cima && !person.isPulando()) {
-            person.ESTADO = EstadoPerson.PULANDO;
-            camera.velY=-camera.velBaseY;
-        }
-    
-        handlerEventsLevel(); // especificidade de quem herda
+    @Override
+    public final void handlerEvents(long tempoDelta) {
+        person.handlerEvents();
     }
 
-    public final void update() {
-        Camera camera = Recursos.getInstance().camera;
-        // atualiza a movimento da camera
-        
-        if(person.colideCaixaMoveDireita() ||
-           person.colideCaixaMoveEsquerda()){ // se o person colide com os limites esquerdo e direito
-            camera.posX += camera.velX; // move a camera
-        }else{ // se o person não colide com os limites esquerdo e direito
-            person.posX += camera.velX; // move o personagem horizontalmente
-        }
-        
-        if(person.colideCaixaMoveCima() ||
-           person.colideCaixaMoveBaixo()){ // se o person colide com os limites superior e inferior
-            camera.posY += camera.velY; // move a camera
-        }else{ // se o person não colide com os limites superior e inferior
-            person.posY += camera.velY; // move o personagem verticalmente
-        }
-
-        if(person.isPulando() && camera.velY<=camera.limiteVelY){
-            camera.velY+=camera.decremVelY;
-        }
-            
-        // atualiza todos os layers do level (ainda sem função)
-        for (int i = 0; i < listaTileLayers.length; i++) {
-            listaTileLayers[i].update();
-        }
-        person.updateCaixaColisao();
-        updateLevel(); // especificidade de quem herda
+    @Override
+    public final void update(long tempoDelta) {
+        person.update();
 
         colisaoPersonLevel(); // Testa a colisão do personagem com os tiles do cenário
     }
 
+    @Override
     public final void render(Graphics g) {
         // renderiza os npcs
         g.setColor(Color.RED);
@@ -112,14 +74,8 @@ public abstract class Level implements IGameloop{
         person.render(g); // renderiza o personagem
         listaTileLayers[3].render(g); // renderiza Layer04-front
         listaTileLayers[4].render(g); // renderiza Layer04-front
-
-        renderLevel(g); // especificidade de quem herda
     }
 
-    // métodos abstratos ***********************************************
-    public abstract void handlerEventsLevel();
-    public abstract void updateLevel();
-    public abstract void renderLevel(Graphics g);
 
     // métodos *********************************************************
     private void parseTileLayer(JSONArray jsonLayers) {
@@ -182,39 +138,100 @@ public abstract class Level implements IGameloop{
         for(int i=0; i<tilesDestino.length;i++){ // percorre todos os tiles de destino do layer05
             Tile tileDestino = tilesDestino[i];
             if(tileDestino.ID==0)continue; // id 0 se refere a nenhum tile
-            // se o tile de destino estiver fora da camera, não testa colisão
             Camera camera = Recursos.getInstance().camera;
+            // se o tile de destino estiver fora da camera, não testa colisão
             if(camera.tileForaDaCamera(tileDestino,layer05.fatorParalaxeX,layer05.fatorParalaxeY)) continue;
-            if(tileDestino.ID-1!=2)continue; // se não for um tile de colisão
+            // se não for um tile de colisão, também ignora o teste
+            if(tileDestino.ID-1>7)continue;
             // testa a colisão do personagem com cada tile dentro da camera
-
-            if(checaColisaoRed(tileDestino,camera)){ // se o person colide com a parte de cima
-                // recoloca o personagem acima do tile
-                person.posY=(tileDestino.y1-person.altura)-camera.posY;
-                person.updateCaixaColisao();
-                person.ESTADO = EstadoPerson.PARADO;
-            }
+            if(tileDestino.ID-1==2) // se o person colide de cima para baixo
+                checaColisaoRed(tileDestino,camera);
+            else if(tileDestino.ID-1==3)
+                checaColisaoPink(tileDestino,camera); // se o person colide na quina superior direita
+            else if(tileDestino.ID-1==4)
+                checaColisaoPurple(tileDestino,camera); // se o person colide da direita -> esquerda
         }
     }
 
-    public boolean checaColisaoRed(Tile tile, Camera camera){
+    public void checaColisaoRed(Tile tile, Camera camera){
         float tileX1 = tile.x1-camera.posX;
         float tileX2 = tile.x2-camera.posX;
         float tileY1 = tile.y1-camera.posY;
         float tileY2 = tile.y2-camera.posY;
-        int pX1 = person.caixaColisao.x1;
-        int pY1 = person.caixaColisao.y1;
-        int pX2 = person.caixaColisao.x2;
-        int pY2 = person.caixaColisao.y2;
+        float pX1 = person.caixaColisao.x1;
+        float pY1 = person.caixaColisao.y1;
+        float pX2 = person.caixaColisao.x2;
+        float pY2 = person.caixaColisao.y2;
         float cVelX = camera.velX;
         float cVelY = camera.velY; 
         // se o personagem está horizontalmente fora do tile
-        if(pX2<tileX1 || pX1>tileX2) return false;
+        if(pX2<tileX1 || pX1>tileX2) return;
         // se o personagem está vericalmente abaixo do tile
-        if(pY1>tileY2) return false;
+        if(pY2>tileY2) return;
         // verifica se colide de cima para baixo
-        if(pY2>tileY1 && pY2-cVelY < pY2)
-            return true;
-        return false;
+        if(pY2>tileY1 && pY2-cVelY < pY2){
+            // recoloca o personagem acima do tile
+            person.posY=(tileY1-person.altura);
+            person.atualizaCaixaColisao();
+            person.entraEstadoPARADO();
+        }
+    }
+    public void checaColisaoPink(Tile tile, Camera camera){
+        float tileX1 = tile.x1-camera.posX;
+        float tileX2 = tile.x2-camera.posX;
+        float tileY1 = tile.y1-camera.posY;
+        float tileY2 = tile.y2-camera.posY;
+        float pX1 = person.caixaColisao.x1;
+        float pY1 = person.caixaColisao.y1;
+        float pX2 = person.caixaColisao.x2;
+        float pY2 = person.caixaColisao.y2;
+        float cVelX = camera.velX;
+        float cVelY = camera.velY; 
+        // se o personagem está horizontalmente e vericalmente fora quina do tile
+        if(pX2<tileX1 || pY1>tileY2) return;
+        // se o personagem está no ponto cego da quina
+        if(pX1>tileX2 && pY2<tileY1) return;
+        // se o personagem não colide com o tile
+        if(!(pX1<tileX2 && pY2>tileY1)) return;
+        // calcula o fator de aproximação horizontal (mais sobre a quina ou mais ao lado da quina)
+        float fatorH = Math.abs(pX1-tileX2);
+        float fatorV = Math.abs(pY2-tileY1);
+        
+        if(fatorH>fatorV){ // aproximação por cima
+            // recoloca o personagem acima do tile
+            person.posY=tileY1-person.altura;
+            person.atualizaCaixaColisao();
+            person.entraEstadoPARADO();
+        }else{ // aproximação pelo lado
+            /// recoloca o personagem na posição anterior
+            person.posX=tileX2-person.fatorDiminuicaoColisao;
+            person.atualizaCaixaColisao();
+            person.entraEstadoPAREDE();
+        }
+    }
+    public void checaColisaoPurple(Tile tile, Camera camera){
+        float tileX1 = tile.x1-camera.posX;
+        float tileX2 = tile.x2-camera.posX;
+        float tileY1 = tile.y1-camera.posY;
+        float tileY2 = tile.y2-camera.posY;
+        float pX1 = person.caixaColisao.x1;
+        float pY1 = person.caixaColisao.y1;
+        float pX2 = person.caixaColisao.x2;
+        float pY2 = person.caixaColisao.y2;
+        float cVelX = camera.velX;
+        float cVelY = camera.velY; 
+        // se o personagem está verticalmente fora do tile
+        if(pY2<tileY1 || pY1>tileY2)
+            return;
+        // se o personagem está horizontalmente à esquerda (após o tile)
+        if(pX1<tileX1)
+            return;
+        // verifica se colide da direita para a esquerda
+        if(pX1<tileX2 && pX1-cVelX >= pX1){
+            // recoloca o personagem na posição anterior
+            person.posX=(tile.x2)-camera.posX-person.fatorDiminuicaoColisao;
+            person.atualizaCaixaColisao();
+            person.entraEstadoPAREDE();
+        }
     }
 }

@@ -4,7 +4,7 @@ class Camera {
     public static Camera singleton = null;
     // atributos
     public float posX,posY;
-    public float velX,velY,velBaseX,velBaseY,decremVelY,limiteVelY;
+    public float velX,velY,velBaseX,velBaseY,velBaseYParede,decremVelY,limiteVelY;
     public int largura, altura;
     public Level levelAtual;
 
@@ -16,6 +16,7 @@ class Camera {
 		this.altura = altura;
 		this.velBaseX=1.7f;
         this.velBaseY=6;
+        this.velBaseYParede=1.5f;
 		this.velX=0;
 		this.velY=0;
         this.decremVelY=0.2f;
@@ -24,6 +25,9 @@ class Camera {
 
     // metodos gameloop ------------------------
     public void handlerEvents() {
+        
+    }
+    public void update(){
         
     }
     // metodos --------------------------------
