@@ -5,19 +5,28 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 
 public abstract class Person{
-    // atributos ---------------------------------------------------
+    // atributos sprites -------------------------------------------
     public BufferedImage img;
+    public Rectangle[] parado, correndo;
+    public Rectangle pulando, parede;
+    public int paradoQuadro, correndoQuadro;
+    // atributos ---------------------------------------------------
 	public int largura, altura;
 	public float posX, posY;
 	public float velX, velY, velBaseX, velBaseY;
     public float limiteHorizontal,limiteVertical;
     public EstadoPerson ESTADO;
+    public Orientacao ORIENTACAO;
     public Rectangle caixaColisao, caixaMove;
     public int fatorDiminuicaoColisao;
+    int acumuladorQuadro;
+    boolean bloqueaMovimentoH;
 
 
     // construtor --------------------------------------------------
     public Person(){
+        bloqueaMovimentoH = false;
+        acumuladorQuadro = 0;
         largura=32; // com base na imagem
 		altura=32; // // com base na imagem
         posX=(Recursos.getInstance().tamanhoTela.width/2.0f)-(largura/2);
@@ -28,33 +37,61 @@ public abstract class Person{
         limiteHorizontal = (Recursos.getInstance().tamanhoTela.width/2.0f);
         limiteVertical = (Recursos.getInstance().tamanhoTela.height/2.0f);
         ESTADO = EstadoPerson.PARADO;
+        ORIENTACAO = Orientacao.DIREITA;
         fatorDiminuicaoColisao = 5;
         caixaColisao = new Rectangle((int)(posX+fatorDiminuicaoColisao), (int)(posY+fatorDiminuicaoColisao), (int)((posX+largura)-fatorDiminuicaoColisao), (int)(posY+altura));
         caixaMove = new Rectangle((int)(Recursos.getInstance().tamanhoTela.width*0.40),
                                   (int)(Recursos.getInstance().tamanhoTela.height*0.38),
                                   (int)(Recursos.getInstance().tamanhoTela.width*0.6),
                                   (int)(Recursos.getInstance().tamanhoTela.height*0.72));
+        // carrega o sprite e quadros
+        img = Recursos.carregarImagem("/assets/charset.png");
+        parado = new Rectangle[6];
+        for(int i=0;i<parado.length;i++){
+            parado[i] = new Rectangle(i*32, 0, (i*32)+32, 32);
+        }
+        paradoQuadro = 0;
+        correndo = new Rectangle[8];
+        for(int i=0;i<correndo.length;i++){
+            correndo[i] = new Rectangle(i*32, 32, (i*32)+32, 64);
+        }
+        correndoQuadro = 0;
+        pulando = new Rectangle(192, 0, 224, 32);
+        parede = new Rectangle(224, 0, 256, 32);
     }
 
-    // Métodos gameloop --------------------------------------------
     public void handlerEvents(){
+        // macanica que gerencia o bloqueio do movimento horizontal
+        if(bloqueaMovimentoH){
+            acumuladorQuadro++;
+            if(acumuladorQuadro >=9){
+                bloqueaMovimentoH=false;
+                acumuladorQuadro=0;
+            }
+        }
+
         KeyState keyState = Recursos.getInstance().keyState;
         Camera camera = Recursos.getInstance().camera;
-        if (Recursos.getInstance().permiteMoverH) { // permite movimento horizontal
+        if (!bloqueaMovimentoH) { // se o movimento Horizontal não estiver bloqueado
             camera.velX = 0;
             if (keyState.k_direita) {
                 camera.velX = camera.velBaseX;
+                ORIENTACAO = Orientacao.DIREITA;
             } else if (keyState.k_esquerda) {
                 camera.velX = -camera.velBaseX;
+                ORIENTACAO = Orientacao.ESQUERDA;
             }
         }
         // se pressionou para cima e não está pulando
         if (keyState.k_cima && !isPULANDO()) {
-            if(isPAREDE()){
-                Recursos.getInstance().desabilitaMoverH(150);
-                camera.velX=camera.velBaseX;
+            if(isPAREDE()){ // se o pulo acontece a partir da parede
+                bloqueaMovimentoH = true;
+                if(ORIENTACAO==Orientacao.ESQUERDA) // se o personagem está na parede pela direita
+                    camera.velX=camera.velBaseX; // move o personagem para direção esquerda
+                else// se o personagem está na parede pela esquerda
+                    camera.velX=-camera.velBaseX; // move o personagem para direção direita
                 entraEstadoPULANDOdaPAREDE();
-            }else{
+            }else{ // se o pulo acontece a partir do chão
                 entraEstadoPULANDO();
             }
         }
@@ -77,7 +114,6 @@ public abstract class Person{
         }else{ // se o person não colide com os limites superior e inferior
             moverVertical(camera); // move o personagem verticalmente
         }
-        System.out.println(ESTADO);
         if(isPULANDO() && camera.velY<=camera.limiteVelY){
             camera.velY+=camera.decremVelY; // decrementa a velocidade vertical, para o personagem descer
         }
@@ -86,10 +122,39 @@ public abstract class Person{
 
     public void render(Graphics g) {
         //g.fillRect((int)posX,(int)posY,largura,altura);
+        Rectangle sourceRect = getQuadro();
+        g.drawImage(img, (int)caixaColisao.x1, (int)caixaColisao.y1, (int)(int)caixaColisao.x1+largura, (int)caixaColisao.y1+altura,
+        (int)sourceRect.x1, (int)sourceRect.y1, (int)sourceRect.x2, (int)sourceRect.y2, null);
         g.setColor(Color.GREEN);
         g.drawRect((int)caixaColisao.x1,(int)caixaColisao.y1,(int)(caixaColisao.x2-caixaColisao.x1),(int)(caixaColisao.y2-caixaColisao.y1));
         g.setColor(Color.WHITE);
         g.drawRect((int)caixaMove.x1,(int)caixaMove.y1,(int)(caixaMove.x2-caixaMove.x1),(int)(caixaMove.y2-caixaMove.y1));
+    }
+
+    // Métodos quadros --------------------------------------------
+
+    public int paradoQuadroCont=0;
+    public int correndoQuadroCont=0;
+    public Rectangle getQuadro(){
+        if(ESTADO==EstadoPerson.PARADO){
+            paradoQuadroCont++;
+            if(paradoQuadroCont>10){
+                paradoQuadroCont=0;
+                paradoQuadro = (paradoQuadro==parado.length-1)?0:paradoQuadro+1; // próximo quadro
+            }
+            return parado[paradoQuadro];
+        }else if(ESTADO==EstadoPerson.CORRENDO){
+            correndoQuadroCont++;
+            if(correndoQuadroCont>10){
+                correndoQuadroCont=0;
+                correndoQuadro = (correndoQuadro==correndo.length-1)?0:correndoQuadro+1; // próximo quadro
+            }
+            return parado[paradoQuadro];
+        }else if(ESTADO==EstadoPerson.PULANDO){
+            return pulando;
+        }else{
+            return parede;
+        }
     }
 
     // Métodos posicionamento --------------------------------------------
@@ -165,7 +230,7 @@ public abstract class Person{
     }
     public void entraEstadoPULANDOdaPAREDE(){
         Camera camera = Recursos.getInstance().camera;
-        camera.velY=-(camera.velBaseY/2);
+        camera.velY=-(camera.velBaseY/2); // a altura do pulo a partir da parede é menor
         ESTADO = EstadoPerson.PULANDO;
     }
 
@@ -213,5 +278,9 @@ public abstract class Person{
             return true;
         }
         return false;
+    }
+
+    public enum Orientacao{
+        ESQUERDA,DIREITA;
     }
 }

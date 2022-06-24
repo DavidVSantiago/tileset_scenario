@@ -25,7 +25,7 @@ public abstract class Level implements IGameloop{
         this.person = person;
         person.ESTADO=EstadoPerson.PULANDO;
         // carrega o arquivo json do cenario
-        JSONObject fullJson = carregarJson(arquivoLevel);
+        JSONObject fullJson = Recursos.carregarJson(arquivoLevel);
         qtdColunasLevel = fullJson.getInt("width");
         qtdLinhasLevel = fullJson.getInt("height");
         larguraLevel= qtdColunasLevel*fullJson.getInt("tilewidth");
@@ -53,15 +53,15 @@ public abstract class Level implements IGameloop{
 
     // métodos gameloop ***********************************************
     @Override
-    public final void handlerEvents(long tempoDelta) {
+    public final void handlerEvents() {
         person.handlerEvents();
     }
 
     @Override
-    public final void update(long tempoDelta) {
+    public final void update() {
         person.update();
-
         colisaoPersonLevel(); // Testa a colisão do personagem com os tiles do cenário
+        //System.out.println(person.ESTADO);
     }
 
     @Override
@@ -97,7 +97,7 @@ public abstract class Level implements IGameloop{
             JSONObject jsonTileset = jsonTilesets.getJSONObject(i);
             int firstGridId = jsonTileset.getInt("firstgid");
             // captura os dados de cada tileset
-            BufferedImage img = carregarImagem(imagensDir + jsonTileset.getString("image"));
+            BufferedImage img = Recursos.carregarImagem(imagensDir + jsonTileset.getString("image"));
             int larguraTile = jsonTileset.getInt("tilewidth");
             int alturaTile = jsonTileset.getInt("tileheight");
             int espacoTiles = jsonTileset.getInt("spacing");
@@ -112,25 +112,20 @@ public abstract class Level implements IGameloop{
             listaTilesets[i] = tileset;
         }
     }
-
-    public static BufferedImage carregarImagem(String file){
-		BufferedImage img = null;
-		try {
-			img = ImageIO.read(Level.class.getResource(file));
-		}catch (Exception e) {
-			e.printStackTrace();
-		}
-		return img;
-	}
-
-    public static JSONObject carregarJson(String arquivo) throws NullPointerException{
-		InputStream inputStream = Level.class.getResourceAsStream(arquivo);
-		if (inputStream ==null)
-			throw new NullPointerException("Arquivo "+ arquivo +" não existe!");
-		return new JSONObject(new JSONTokener(inputStream));
-	}
     
     // métodos de colisão *******************************************
+
+    /** Verifica se o tile está fora da área de cobertura do personagem */
+    public boolean tileForaAreaColisao(Tile tile, Camera camera){
+        if(tile.x1-camera.posX>person.caixaMove.x2 ||
+            tile.x2-camera.posX<person.caixaMove.x1 ||  
+            tile.y1-camera.posY>person.caixaMove.y2 ||
+            tile.y2-camera.posY<person.caixaMove.y1){
+                return true;
+        }
+        return false;
+    }
+
     /** Testa a colisão do personagem com os tiles do cenário */
     public void colisaoPersonLevel(){
         TileLayer layer05 = listaTileLayers[4]; // Layer05-collision (colidível)
@@ -140,11 +135,16 @@ public abstract class Level implements IGameloop{
             if(tileDestino.ID==0)continue; // id 0 se refere a nenhum tile
             Camera camera = Recursos.getInstance().camera;
             // se o tile de destino estiver fora da camera, não testa colisão
-            if(camera.tileForaDaCamera(tileDestino,layer05.fatorParalaxeX,layer05.fatorParalaxeY)) continue;
+            if(tileForaAreaColisao(tileDestino,camera)) continue;
+            //if(camera.tileForaDaCamera(tileDestino,layer05.fatorParalaxeX,layer05.fatorParalaxeY)) continue;
             // se não for um tile de colisão, também ignora o teste
             if(tileDestino.ID-1>7)continue;
             // testa a colisão do personagem com cada tile dentro da camera
-            if(tileDestino.ID-1==2) // se o person colide de cima para baixo
+            if(tileDestino.ID-1==0) // se o person colide de cima para baixo
+                checaColisaoYellow(tileDestino, camera);
+            else if(tileDestino.ID-1==1) // se o person colide de cima para baixo
+                checaColisaoOrange(tileDestino,camera);
+            else if(tileDestino.ID-1==2) // se o person colide de cima para baixo
                 checaColisaoRed(tileDestino,camera);
             else if(tileDestino.ID-1==3)
                 checaColisaoPink(tileDestino,camera); // se o person colide na quina superior direita
@@ -215,6 +215,43 @@ public abstract class Level implements IGameloop{
             person.entraEstadoPAREDE();
         }
     }
+    public void checaColisaoOrange(Tile tile, Camera camera){
+        float tileX1 = tile.x1-camera.posX;
+        float tileX2 = tile.x2-camera.posX;
+        float tileY1 = tile.y1-camera.posY;
+        float tileY2 = tile.y2-camera.posY;
+        float pX1 = person.caixaColisao.x1;
+        float pY1 = person.caixaColisao.y1;
+        float pX2 = person.caixaColisao.x2;
+        float pY2 = person.caixaColisao.y2;
+        float cVelX = camera.velX;
+        float cVelY = camera.velY; 
+        // se o personagem está horizontalmente e vericalmente fora quina do tile
+        if(pX1>tileX2 || pY1>tileY2) return;
+        // se o personagem está no ponto cego da quina
+        if(pX2<tileX1 && pY2<tileY1) return;
+        // se o personagem não colide com o tile
+        if(!(pX2>tileX1 && pY2>tileY1)) return;
+        // calcula o fator de aproximação horizontal (mais sobre a quina ou mais ao lado da quina)
+        pY2-=camera.velY; // correção de queda na quina
+        float fatorH = Math.abs(tileX1-pX2);
+        float fatorV = Math.abs(pY2-tileY1);
+        if(fatorH>fatorV){ // aproximação por cima
+            // recoloca o personagem acima do tile
+            float altura = person.caixaColisao.y2-person.caixaColisao.y1;
+            person.caixaColisao.y2=tileY1;
+            person.caixaColisao.y1=person.caixaColisao.y2-altura;
+            person.atualizaCaixaColisao();
+            person.entraEstadoPARADO();
+        }else{ // aproximação pelo lado esquerdo
+            /// recoloca o personagem na posição anterior
+            float largura = person.caixaColisao.x2-person.caixaColisao.x1;
+            person.caixaColisao.x2=tileX1;
+            person.caixaColisao.x1=person.caixaColisao.x2-largura;
+            person.atualizaCaixaColisao();
+            person.entraEstadoPAREDE();
+        }
+    }
     public void checaColisaoPurple(Tile tile, Camera camera){
         float tileX1 = tile.x1-camera.posX;
         float tileX2 = tile.x2-camera.posX;
@@ -238,6 +275,34 @@ public abstract class Level implements IGameloop{
             float largura = person.caixaColisao.x2-person.caixaColisao.x1;
             person.caixaColisao.x1=tileX2;
             person.caixaColisao.x2=person.caixaColisao.x1+largura;
+            person.atualizaCaixaColisao();
+            person.entraEstadoPAREDE();
+        }
+    }
+
+    public void checaColisaoYellow(Tile tile, Camera camera){
+        float tileX1 = tile.x1-camera.posX;
+        float tileX2 = tile.x2-camera.posX;
+        float tileY1 = tile.y1-camera.posY;
+        float tileY2 = tile.y2-camera.posY;
+        float pX1 = person.caixaColisao.x1;
+        float pY1 = person.caixaColisao.y1;
+        float pX2 = person.caixaColisao.x2;
+        float pY2 = person.caixaColisao.y2;
+        float cVelX = camera.velX;
+        float cVelY = camera.velY; 
+        // se o personagem está verticalmente fora do tile
+        if(pY2<tileY1 || pY1>tileY2)
+            return;
+        // se o personagem está horizontalmente à direita (após o tile)
+        if(pX2>tileX2)
+            return;
+        // verifica se colide da esquerda para a direita
+        if(pX2>tileX1 && pX2-cVelX <= pX2){
+            // recoloca o personagem na posição anterior
+            float largura = person.caixaColisao.x2-person.caixaColisao.x1;
+            person.caixaColisao.x2=tileX1;
+            person.caixaColisao.x1=person.caixaColisao.x2-largura;
             person.atualizaCaixaColisao();
             person.entraEstadoPAREDE();
         }

@@ -20,12 +20,12 @@ public class Game extends GameLoop{
 	
 	// GAMELOOP -------------------------------
 	@Override
-	public void handlerEvents(long tempoDelta) {
-		level.handlerEvents(tempoDelta);
+	public void handlerEvents() {
+		level.handlerEvents();
 	}
 	@Override
-	public void update(long tempoDelta) {
-		level.update(tempoDelta);
+	public void update() {
+		level.update();
 	}
 	@Override
 	public void render(Graphics g) {

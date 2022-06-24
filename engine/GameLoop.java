@@ -13,7 +13,7 @@ public abstract class GameLoop extends JPanel implements IGameloop,KeyListener{
     private JFrame janela;
     protected Thread gameThread;
     protected EstadoJogo ESTADO;
-    private long tempoAtual, tempoAnterior, tempoDelta;
+    private long quadroAtual;
     private int interval = 17;
 
     // construtor -------------------------------------------------------
@@ -40,16 +40,15 @@ public abstract class GameLoop extends JPanel implements IGameloop,KeyListener{
 
     // métodos gameloop -------------------------------------------------
     public void gameloop() {
-        tempoAnterior = System.currentTimeMillis();
+        quadroAtual = 0;
 		while(true) { // repetição intermitente do gameloop
-            tempoAtual = System.currentTimeMillis();
-			tempoDelta = tempoAtual-tempoAnterior;
+            quadroAtual++;
+            Recursos.getInstance().quadroAtual++; // repassa a informação para a classe Recursos
 
-            handlerEvents(tempoDelta);
-			update(tempoDelta);
+            handlerEvents();
+			update();
             repaint();
 
-            tempoAnterior = tempoAtual;
 			try {
 				Thread.sleep(interval);
 			}catch (Exception e) {}
