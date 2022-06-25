@@ -7,12 +7,12 @@ import java.awt.image.BufferedImage;
 public abstract class Person{
     // atributos sprites -------------------------------------------
     public BufferedImage img;
-    public Rectangle[] parado, correndo;
-    public Rectangle pulando, parede;
-    public int paradoQuadro, correndoQuadro;
+    public Rectangle spriteParado, spriteCorrendo, spritePulando, spriteParede;
+    public Rectangle spriteAtirando, spriteCorrendoAtirando, spritePulandoAtirando;
+    //public int paradoQuadro, correndoQuadro;
     // atributos ---------------------------------------------------
 	public int largura, altura;
-	public float posX, posY;
+	public float posX, posY,correcaoX;
 	public float velX, velY, velBaseX, velBaseY;
     public float limiteHorizontal,limiteVertical;
     public EstadoPerson ESTADO;
@@ -38,33 +38,29 @@ public abstract class Person{
         limiteVertical = (Recursos.getInstance().tamanhoTela.height/2.0f);
         ESTADO = EstadoPerson.PARADO;
         ORIENTACAO = Orientacao.DIREITA;
-        fatorDiminuicaoColisao = 5;
-        caixaColisao = new Rectangle((int)(posX+fatorDiminuicaoColisao), (int)(posY+fatorDiminuicaoColisao), (int)((posX+largura)-fatorDiminuicaoColisao), (int)(posY+altura));
+        fatorDiminuicaoColisao = 8;
+        caixaColisao = new Rectangle((int)(posX+fatorDiminuicaoColisao), (int)(posY), (int)((posX+largura)-fatorDiminuicaoColisao), (int)(posY+altura));
         caixaMove = new Rectangle((int)(Recursos.getInstance().tamanhoTela.width*0.40),
                                   (int)(Recursos.getInstance().tamanhoTela.height*0.38),
                                   (int)(Recursos.getInstance().tamanhoTela.width*0.6),
                                   (int)(Recursos.getInstance().tamanhoTela.height*0.72));
+        correcaoX = (((posX+largura)-posX)-(caixaColisao.x2-caixaColisao.x1))/2.0f;
         // carrega o sprite e quadros
         img = Recursos.carregarImagem("/assets/charset.png");
-        parado = new Rectangle[6];
-        for(int i=0;i<parado.length;i++){
-            parado[i] = new Rectangle(i*32, 0, (i*32)+32, 32);
-        }
-        paradoQuadro = 0;
-        correndo = new Rectangle[8];
-        for(int i=0;i<correndo.length;i++){
-            correndo[i] = new Rectangle(i*32, 32, (i*32)+32, 64);
-        }
-        correndoQuadro = 0;
-        pulando = new Rectangle(192, 0, 224, 32);
-        parede = new Rectangle(224, 0, 256, 32);
+        spriteParado = new Rectangle(0,0,32,32);
+        spriteCorrendo = new Rectangle(32,0,64,32);
+        spritePulando = new Rectangle(64,0,96,32);
+        spriteParede = new Rectangle(96,0,128,32);
+        spriteAtirando = new Rectangle(128,0,160,32);
+        spriteCorrendoAtirando = new Rectangle(160,0,192,32);
+        spritePulandoAtirando = new Rectangle(192,0,224,32);
     }
 
     public void handlerEvents(){
         // macanica que gerencia o bloqueio do movimento horizontal
         if(bloqueaMovimentoH){
             acumuladorQuadro++;
-            if(acumuladorQuadro >=9){
+            if(acumuladorQuadro >= 9){ // 9 quadros até bloqueados durante o pulo da parede
                 bloqueaMovimentoH=false;
                 acumuladorQuadro=0;
             }
@@ -83,7 +79,7 @@ public abstract class Person{
             }
         }
         // se pressionou para cima e não está pulando
-        if (keyState.k_cima && !isPULANDO()) {
+        if (keyState.k_cima && !isPULANDO() && !isPULANDO_ATIRANDO()) {
             if(isPAREDE()){ // se o pulo acontece a partir da parede
                 bloqueaMovimentoH = true;
                 if(ORIENTACAO==Orientacao.ESQUERDA) // se o personagem está na parede pela direita
@@ -98,7 +94,10 @@ public abstract class Person{
     }
 
     public void update(){
-        ESTADO = EstadoPerson.PULANDO;
+        if(Recursos.getInstance().keyState.k_atirando)
+            ESTADO = EstadoPerson.PULANDO_ATIRANDO;
+        else
+            ESTADO = EstadoPerson.PULANDO;
         Camera camera = Recursos.getInstance().camera;
         // atualiza a movimento da camera
         if(colideCaixaMoveDireita() ||
@@ -114,21 +113,27 @@ public abstract class Person{
         }else{ // se o person não colide com os limites superior e inferior
             moverVertical(camera); // move o personagem verticalmente
         }
-        if(isPULANDO() && camera.velY<=camera.limiteVelY){
+        if((isPULANDO() || isPULANDO_ATIRANDO()) && camera.velY<=camera.limiteVelY){
             camera.velY+=camera.decremVelY; // decrementa a velocidade vertical, para o personagem descer
         }
         atualizaCaixaColisao();
     }
 
     public void render(Graphics g) {
-        //g.fillRect((int)posX,(int)posY,largura,altura);
         Rectangle sourceRect = getQuadro();
-        g.drawImage(img, (int)caixaColisao.x1, (int)caixaColisao.y1, (int)(int)caixaColisao.x1+largura, (int)caixaColisao.y1+altura,
-        (int)sourceRect.x1, (int)sourceRect.y1, (int)sourceRect.x2, (int)sourceRect.y2, null);
-        g.setColor(Color.GREEN);
+        
+        if(ORIENTACAO==Orientacao.DIREITA)
+            g.drawImage(img, (int)Math.floor(caixaColisao.x1-correcaoX), (int)Math.floor(caixaColisao.y1), (int)Math.floor(caixaColisao.x1+largura-correcaoX), (int)Math.floor(caixaColisao.y1+altura),
+                             (int)Math.floor(sourceRect.x1), (int)Math.floor(sourceRect.y1), (int)Math.floor(sourceRect.x2), (int)Math.floor(sourceRect.y2), null);
+        if(ORIENTACAO==Orientacao.ESQUERDA)
+            g.drawImage(img, (int)Math.floor(caixaColisao.x1+largura-correcaoX+1), (int)Math.floor(caixaColisao.y1), (int)Math.floor(caixaColisao.x1-correcaoX+1), (int)Math.floor(caixaColisao.y1+altura),
+                             (int)Math.floor(sourceRect.x1), (int)Math.floor(sourceRect.y1), (int)Math.floor(sourceRect.x2), (int)Math.floor(sourceRect.y2), null);
+
+        /*g.setColor(Color.GREEN);
         g.drawRect((int)caixaColisao.x1,(int)caixaColisao.y1,(int)(caixaColisao.x2-caixaColisao.x1),(int)(caixaColisao.y2-caixaColisao.y1));
         g.setColor(Color.WHITE);
         g.drawRect((int)caixaMove.x1,(int)caixaMove.y1,(int)(caixaMove.x2-caixaMove.x1),(int)(caixaMove.y2-caixaMove.y1));
+        */
     }
 
     // Métodos quadros --------------------------------------------
@@ -137,24 +142,21 @@ public abstract class Person{
     public int correndoQuadroCont=0;
     public Rectangle getQuadro(){
         if(ESTADO==EstadoPerson.PARADO){
-            paradoQuadroCont++;
-            if(paradoQuadroCont>10){
-                paradoQuadroCont=0;
-                paradoQuadro = (paradoQuadro==parado.length-1)?0:paradoQuadro+1; // próximo quadro
-            }
-            return parado[paradoQuadro];
+            return spriteParado;
         }else if(ESTADO==EstadoPerson.CORRENDO){
-            correndoQuadroCont++;
-            if(correndoQuadroCont>10){
-                correndoQuadroCont=0;
-                correndoQuadro = (correndoQuadro==correndo.length-1)?0:correndoQuadro+1; // próximo quadro
-            }
-            return parado[paradoQuadro];
+            return spriteCorrendo;
         }else if(ESTADO==EstadoPerson.PULANDO){
-            return pulando;
-        }else{
-            return parede;
+            return spritePulando;
+        }else if(ESTADO==EstadoPerson.PAREDE){
+            return spriteParede;
+        }else if(ESTADO==EstadoPerson.ATIRANDO){
+            return spriteAtirando;
+        }else if(ESTADO==EstadoPerson.CORRENDO_ATIRANDO){
+            return spriteCorrendoAtirando;
+        }else if(ESTADO==EstadoPerson.PULANDO_ATIRANDO){
+            return spritePulandoAtirando ;
         }
+        return null;
     }
 
     // Métodos posicionamento --------------------------------------------
@@ -197,11 +199,20 @@ public abstract class Person{
     public boolean isPARADO(){
         return ESTADO==EstadoPerson.PARADO;
     }
+    public boolean isATIRANDO(){
+        return ESTADO==EstadoPerson.ATIRANDO;
+    }
     public boolean isPULANDO(){
         return ESTADO==EstadoPerson.PULANDO;
     }
+    public boolean isPULANDO_ATIRANDO(){
+        return ESTADO==EstadoPerson.PULANDO_ATIRANDO;
+    }
     public boolean isCORRENDO(){
         return ESTADO==EstadoPerson.CORRENDO;
+    }
+    public boolean isCORRENDO_ATIRANDO(){
+        return ESTADO==EstadoPerson.CORRENDO_ATIRANDO;
     }
     public boolean isDANO(){
         return ESTADO==EstadoPerson.DANO;
@@ -216,7 +227,10 @@ public abstract class Person{
     public void entraEstadoPARADO(){
         Camera camera = Recursos.getInstance().camera;
         camera.velY=camera.velBaseY*0.3f; // velicidade de caida mais lenta quando parado, para diminuir a velocidade de caída das plataformas
-        ESTADO = EstadoPerson.PARADO;
+        if(Recursos.getInstance().keyState.k_atirando)
+            ESTADO = EstadoPerson.ATIRANDO;
+        else
+            ESTADO = EstadoPerson.PARADO;
     }
     public void entraEstadoPAREDE(){
         Camera camera = Recursos.getInstance().camera;
@@ -226,12 +240,23 @@ public abstract class Person{
     public void entraEstadoPULANDO(){
         Camera camera = Recursos.getInstance().camera;
         camera.velY=-camera.velBaseY;
-        ESTADO = EstadoPerson.PULANDO;
+        if(Recursos.getInstance().keyState.k_atirando)
+            ESTADO = EstadoPerson.PULANDO_ATIRANDO;
+        else
+            ESTADO = EstadoPerson.PULANDO;
     }
     public void entraEstadoPULANDOdaPAREDE(){
         Camera camera = Recursos.getInstance().camera;
         camera.velY=-(camera.velBaseY/2); // a altura do pulo a partir da parede é menor
         ESTADO = EstadoPerson.PULANDO;
+    }
+    public void entraEstadoCORRENDO(){
+        Camera camera = Recursos.getInstance().camera;
+        camera.velY=camera.velBaseY*0.3f; // velicidade de caida mais lenta quando parado, para diminuir a velocidade de caída das plataformas
+        if(Recursos.getInstance().keyState.k_atirando)
+            ESTADO = EstadoPerson.CORRENDO_ATIRANDO;
+        else
+            ESTADO = EstadoPerson.CORRENDO;
     }
 
     // Métodos da caixa de colisão ---------------------------------------

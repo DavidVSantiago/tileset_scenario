@@ -11,7 +11,7 @@ public class Game extends GameLoop{
 	private Person person;
 	
 	public Game() {
-		Recursos.getInstance().initRecursos(426,240);
+		super(426,240);
 		person = new Personagem();
 		level = new Fase("/assets/cenario_01.tmj","/assets/",person);	
 		iniciarJogo("Jogo Tiled");

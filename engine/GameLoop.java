@@ -7,6 +7,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.Dimension;
 
 public abstract class GameLoop extends JPanel implements IGameloop,KeyListener{
     // atributos -------------------------------------------------------
@@ -17,7 +18,8 @@ public abstract class GameLoop extends JPanel implements IGameloop,KeyListener{
     private int interval = 17;
 
     // construtor -------------------------------------------------------
-    public GameLoop() {
+    public GameLoop(int larguraTela,int alturaTela) {
+        Recursos.getInstance().initRecursos(larguraTela,alturaTela);
         ESTADO = EstadoJogo.INICIANDO;
         janela = new JFrame(); // cria a janela
 		janela.getContentPane().add(this); // adiciona a tela do jogo na janela
@@ -63,7 +65,8 @@ public abstract class GameLoop extends JPanel implements IGameloop,KeyListener{
     }
     // métodos ----------------------------------------------------------
     public void iniciarJogo(String nome){
-        setPreferredSize(Recursos.getInstance().tamanhoTela);
+        //setPreferredSize(Recursos.getInstance().tamanhoTela);
+        setPreferredSize(new Dimension(Recursos.getInstance().tamanhoTela.width*2,Recursos.getInstance().tamanhoTela.height*2));
         janela.setName(nome);
         janela.pack();
         addKeyListener(this);
@@ -88,6 +91,9 @@ public abstract class GameLoop extends JPanel implements IGameloop,KeyListener{
                 break;
             case KeyEvent.VK_RIGHT:
                 Recursos.getInstance().keyState.k_direita = false;
+                break;
+            case KeyEvent.VK_A:
+                Recursos.getInstance().keyState.k_atirando = false;
                 break;
             case KeyEvent.VK_1:
                 interval=17;
@@ -115,6 +121,9 @@ public abstract class GameLoop extends JPanel implements IGameloop,KeyListener{
                 break;
             case KeyEvent.VK_RIGHT:
                 Recursos.getInstance().keyState.k_direita = true;
+                break;
+            case KeyEvent.VK_A:
+                Recursos.getInstance().keyState.k_atirando = true;
                 break;
         }
     }

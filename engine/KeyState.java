@@ -6,4 +6,5 @@ public class KeyState{
     public boolean k_baixo = false;
     public boolean k_direita = false;
     public boolean k_esquerda = false;
+    public boolean k_atirando = false;
 }

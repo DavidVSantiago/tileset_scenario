@@ -73,7 +73,7 @@ public abstract class Level implements IGameloop{
         listaTileLayers[2].render(g); // renderiza Layer03-back
         person.render(g); // renderiza o personagem
         listaTileLayers[3].render(g); // renderiza Layer04-front
-        listaTileLayers[4].render(g); // renderiza Layer04-front
+        listaTileLayers[4].render(g); // renderiza Layer05-colliders
     }
 
 
@@ -175,7 +175,11 @@ public abstract class Level implements IGameloop{
             person.caixaColisao.y2=tileY1;
             person.caixaColisao.y1=person.caixaColisao.y2-altura;
             person.atualizaCaixaColisao();
-            person.entraEstadoPARADO();
+            KeyState keyState = Recursos.getInstance().keyState;
+            if(keyState.k_esquerda||keyState.k_direita)
+                person.entraEstadoCORRENDO();
+            else
+                person.entraEstadoPARADO();
         }
     }
     public void checaColisaoPink(Tile tile, Camera camera){
@@ -188,7 +192,7 @@ public abstract class Level implements IGameloop{
         float pX2 = person.caixaColisao.x2;
         float pY2 = person.caixaColisao.y2;
         float cVelX = camera.velX;
-        float cVelY = camera.velY; 
+        float cVelY = camera.velY;
         // se o personagem está horizontalmente e vericalmente fora quina do tile
         if(pX2<tileX1 || pY1>tileY2) return;
         // se o personagem está no ponto cego da quina
@@ -205,11 +209,15 @@ public abstract class Level implements IGameloop{
             person.caixaColisao.y2=tileY1;
             person.caixaColisao.y1=person.caixaColisao.y2-altura;
             person.atualizaCaixaColisao();
-            person.entraEstadoPARADO();
+            KeyState keyState = Recursos.getInstance().keyState;
+            if(keyState.k_esquerda||keyState.k_direita)
+                person.entraEstadoCORRENDO();
+            else
+                person.entraEstadoPARADO();
         }else{ // aproximação pelo lado direito
             /// recoloca o personagem na posição anterior
             float largura = person.caixaColisao.x2-person.caixaColisao.x1;
-            person.caixaColisao.x1=tileX2;
+            person.caixaColisao.x1=tileX2-1;
             person.caixaColisao.x2=person.caixaColisao.x1+largura;
             person.atualizaCaixaColisao();
             person.entraEstadoPAREDE();
@@ -242,7 +250,11 @@ public abstract class Level implements IGameloop{
             person.caixaColisao.y2=tileY1;
             person.caixaColisao.y1=person.caixaColisao.y2-altura;
             person.atualizaCaixaColisao();
-            person.entraEstadoPARADO();
+            KeyState keyState = Recursos.getInstance().keyState;
+            if(keyState.k_esquerda||keyState.k_direita)
+                person.entraEstadoCORRENDO();
+            else
+                person.entraEstadoPARADO();
         }else{ // aproximação pelo lado esquerdo
             /// recoloca o personagem na posição anterior
             float largura = person.caixaColisao.x2-person.caixaColisao.x1;
@@ -273,7 +285,7 @@ public abstract class Level implements IGameloop{
         if(pX1<tileX2 && pX1-cVelX >= pX1){
             // recoloca o personagem na posição anterior
             float largura = person.caixaColisao.x2-person.caixaColisao.x1;
-            person.caixaColisao.x1=tileX2;
+            person.caixaColisao.x1=tileX2-1;
             person.caixaColisao.x2=person.caixaColisao.x1+largura;
             person.atualizaCaixaColisao();
             person.entraEstadoPAREDE();
